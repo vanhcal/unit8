@@ -1,0 +1,68 @@
+<html>
+<head>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js">
+ </script>
+<!--creates an anonymous function that inserts script into the dom of the login.html page-->
+<script src="//apis.google.com/js/platform.js?onload=start"> </script>
+</head>
+<body>
+<!--div for actual google sign-in button-->
+<div id="signInButton">
+<!--openid is the actual google resource we want to be able to access, which includes name, profile, email-->
+<!--postmessage enables one-time code flow-->
+<!--offline allows user to make requests to google api server even if the user is not logged in-->
+<!--single host origin determines scope of uris that can access the cookie. Single host origin refers to website with single host name and no subdomains-->
+<!--signincallback signifies callback function. when callback is called, it's given one time use code along with access token-->
+<!--force, forces user to login every time they visit login page; doesn't check to see if they're already logged in. useful for debugging, but should be disabled in prod-->
+<span class="g-signin"
+	data-scope="openid email"
+    data-clientid="929791475041-ip0k8on9p2o1tu2q29ve7dagctu2ra3u.apps.googleusercontent.com"
+    data-redirecturi="postmessage"
+    data-accesstype="offline"
+    data-cookiepolicy="single_host_origin"
+    data-callback="signInCallback"
+    data-approvalprompt="force">
+</span>
+</div>
+
+<div id="result"></div>
+
+<!--if the authResult object contains paramater called 'code', we know Google authorization with API server was successful, and the one-time use code is present-->
+<script>
+function signInCallback(authResult) {
+	if (authResult['code']), {
+		$('#signinButton').attr('style', 'display: none');
+		// send one-time user code to the server, if the server responds, write a 'login successful' message to the web page and then redirect back to the main restaurants page
+		$.ajax({
+			type: 'POST',
+			// the url this method will call; pass in STATE object to cross-reference against forgery
+			url: '/gconnect?state={{STATE}}',
+			// we do not want jquery to process the response into a string
+			processData: false,
+			// octet means we're sending arbitrary binary stream of data; charset means it's formatted using unicode
+			contentType: 'application/octet-stream; charset=utf-8',
+			// the one-time use code is the data we send along to our server
+			data: authResult['code']
+			// when we receive a successful response code from the server, return a successful login message to the user, then redirect to the main restaurants page after 4 seconds. If the server has any additional information to pass to the client, we can store that ini 'result'
+			success: function(result) {
+				if (result) {
+					$('#result').html('Login Successful!</br>' + result + '</br>Redirecting...')
+					setTimeout(function() {
+						window.location.href = "/restaurant";
+					}, 4000); 
+				}
+				else if (authResult['error']) {
+					console.log('There was an error: ' + authResult['error'])
+				}
+				// in the event there is no response
+				else {
+					$('#result').html('Failed to make a server side call. Check your configuration and console.');
+				}
+			}
+		})
+	}	
+}
+</script>
+
+</body>
+</html>
